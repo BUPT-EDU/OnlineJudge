@@ -15,4 +15,6 @@ RUN curl -L  $(curl -s  https://api.github.com/repos/QingdaoU/OnlineJudgeFE/rele
     unzip dist.zip && \
     rm dist.zip
 
+RUN chmod +x /app/deploy/entrypoint.sh
+
 ENTRYPOINT /app/deploy/entrypoint.sh
