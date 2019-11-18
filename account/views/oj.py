@@ -206,6 +206,21 @@ class UsernameOrEmailCheck(APIView):
         return self.success(result)
 
 
+class UserRegisterMidAPI(APIView):
+    def post(self, request):
+        """
+        User register api
+        """
+        data = request.data
+        data["username"] = data["username"].lower()
+        if User.objects.filter(username=data["username"]).exists():
+            return self.error("Username already exists")
+        user = User.objects.create(username=data["username"])
+        user.set_password(data["password"])
+        user.save()
+        UserProfile.objects.create(user=user)
+        return self.success("Succeeded")
+
 class UserRegisterAPI(APIView):
     @validate_serializer(UserRegisterSerializer)
     def post(self, request):
