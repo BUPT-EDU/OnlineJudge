@@ -7,7 +7,8 @@ import dateutil.parser
 from django.http import FileResponse
 
 from account.decorators import check_contest_permission, ensure_created_by
-from account.models import User
+from account.models import User, Group
+from account.serializers import GroupSeriaizer
 from submission.models import Submission, JudgeStatus
 from utils.api import APIView, validate_serializer
 from utils.cache import cache
@@ -18,8 +19,35 @@ from ..models import Contest, ContestAnnouncement, ACMContestRank
 from ..serializers import (ContestAnnouncementSerializer, ContestAdminSerializer,
                            CreateConetestSeriaizer, CreateContestAnnouncementSerializer,
                            EditConetestSeriaizer, EditContestAnnouncementSerializer,
-                           ACMContesHelperSerializer, )
+                           ACMContesHelperSerializer, ContestGroupListSeriaizer )
 
+class ContestGroupAPI(APIView):
+    @validate_serializer(ContestGroupListSeriaizer)
+    def post(self, request):
+        data = request.data
+        contest = Contest.objects.get(id=data["contest_id"])
+        for group_id in data["group_ids"]:
+            group = Group.objects.get(id=group_id)
+            contest.groups.add(group)
+        return self.success()
+
+    def delete(self, request):
+        contest_id = request.GET.get("contest_id")
+        contest = Contest.objects.get(id=contest_id)
+        group_ids = request.GET.get("group_ids")
+        group_ids = group_ids.split(",")
+        for group_id in group_ids:
+            group = Group.objects.get(id=group_id)
+            contest.groups.remove(group)
+        return self.success()
+
+    def get(self, request):
+        contest_id = request.GET.get("id")
+        groups = Contest.objects.get(id=contest_id).groups.all()
+        keyword = request.GET.get("keyword", None)
+        if keyword:
+            groups = groups.filter(groupname__icontains=keyword)
+        return self.success(self.paginate_data(request, groups, GroupSeriaizer))
 
 class ContestAPI(APIView):
     @validate_serializer(CreateConetestSeriaizer)

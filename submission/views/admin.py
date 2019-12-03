@@ -17,6 +17,5 @@ class SubmissionRejudgeAPI(APIView):
             return self.error("Submission does not exists")
         submission.statistic_info = {}
         submission.save()
-
         judge_task.send(submission.id, submission.problem.id)
         return self.success()

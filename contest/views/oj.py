@@ -4,6 +4,7 @@ import xlsxwriter
 from django.http import HttpResponse
 from django.utils.timezone import now
 from django.core.cache import cache
+from django.db.models import Q
 
 from problem.models import Problem
 from utils.api import APIView, validate_serializer
@@ -34,6 +35,7 @@ class ContestAnnouncementListAPI(APIView):
 
 class ContestAPI(APIView):
     def get(self, request):
+        #return self.error("no power")
         id = request.GET.get("id")
         if not id or not check_is_id(id):
             return self.error("Invalid parameter, id is required")
@@ -94,7 +96,9 @@ class ContestAccessAPI(APIView):
         contest_id = request.GET.get("contest_id")
         if not contest_id:
             return self.error()
-        return self.success({"access": int(contest_id) in request.session.get("accessible_contests", [])})
+        contest = Contest.objects.filter(Q(id=contest_id) & (Q(groups__groupuser__user_id=request.user.id) | Q(groups__isnull=True)))
+        return self.success({"access": len(contest) > 0})
+        #return self.success({"access": int(contest_id) in request.session.get("accessible_contests", [])})
 
 
 class ContestRankAPI(APIView):

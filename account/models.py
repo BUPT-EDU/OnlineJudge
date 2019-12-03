@@ -23,6 +23,13 @@ class UserManager(models.Manager):
         return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": username})
 
 
+class Group(models.Model):
+    groupname = models.TextField()
+
+    class Meta:
+        db_table = "group"
+
+
 class User(AbstractBaseUser):
     username = models.TextField(unique=True)
     email = models.TextField(null=True)
@@ -65,6 +72,15 @@ class User(AbstractBaseUser):
     class Meta:
         db_table = "user"
 
+class GroupUser(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    user_type = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "group_users"
+        unique_together = (("group", "user"),)
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

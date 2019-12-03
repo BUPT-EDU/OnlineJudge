@@ -11,11 +11,104 @@ from submission.models import Submission
 from utils.api import APIView, validate_serializer
 from utils.shortcuts import rand_str
 
-from ..decorators import super_admin_required
-from ..models import AdminType, ProblemPermission, User, UserProfile
+from ..decorators import super_admin_required, admin_role_required
+from ..models import AdminType, ProblemPermission, User, UserProfile, Group, GroupUser
 from ..serializers import EditUserSerializer, UserAdminSerializer, GenerateUserSerializer
 from ..serializers import ImportUserSeralizer
+from ..serializers import GroupSeriaizer, CreateGroupSeriaizer, EditGroupSeriaizer
+from ..serializers import GroupUserListSeriaizer, GroupUserSeriaizer, EditGroupUserSeriaizer
 
+class GroupAPI(APIView):
+    @validate_serializer(CreateGroupSeriaizer)
+    @admin_role_required
+    def post(self, request):
+        data = request.data
+        group = Group.objects.create(**data)
+        GroupUser.objects.create(group=group, user=User.objects.get(id=request.user.id), user_type=True)
+        return self.success(GroupSeriaizer(group).data)
+
+    @validate_serializer(EditGroupSeriaizer)
+    @admin_role_required
+    def put(self, request):
+        data = request.data
+        try:
+            group = Group.objects.get(id=data.pop("id"))
+        except Group.DoesNotExist:
+            return self.error("Group does not exist")
+
+        for k, v in data.items():
+            setattr(group, k, v)
+        group.save()
+        return self.success(GroupSeriaizer(group).data)
+
+    @admin_role_required
+    def get(self, request):
+        group_id = request.GET.get("id")
+        if group_id:
+            try:
+                group = Group.objects.get(id=group_id)
+                return self.success(GroupSeriaizer(group).data)
+            except Group.DoesNotExist:
+                return self.error("Group does not exist")
+
+        groups = Group.objects.all()
+        if request.user.is_admin():
+            groups = Group.objects.filter(Q(groupuser__user=request.user) & Q(groupuser__user_type=True))
+        keyword = request.GET.get("keyword")
+        if keyword:
+            groups = groups.filter(groupname__contains=keyword)
+        return self.success(self.paginate_data(request, groups, GroupSeriaizer))
+
+    @admin_role_required
+    def delete(self, request):
+        id = request.GET.get("id")
+        if not id:
+            return self.error("Invalid Parameter, id is required")
+        ids = id.split(",")
+        Group.objects.filter(id__in=ids).delete()
+        return self.success()
+
+class GroupUserAPI(APIView):
+    @validate_serializer(GroupUserListSeriaizer)
+    @admin_role_required
+    def post(self, request):
+        data = request.data
+        group = Group.objects.get(id=data["group_id"])
+        for user_id in data["user_ids"]:
+            GroupUser.objects.create(group=group, user=User.objects.get(id=user_id), user_type=False)
+        return self.success()
+
+    @validate_serializer(EditGroupUserSeriaizer)
+    @admin_role_required
+    def put(self, request):
+        data = request.data
+        print(data)
+        try:
+            groupuser = GroupUser.objects.get(group_id=data["group_id"], user_id=data["user_id"])
+        except Group.DoesNotExist:
+            return self.error("GroupUser does not exist")
+        groupuser.user_type=data["user_type"]
+        groupuser.save()
+        return self.success()
+
+    @admin_role_required
+    def get(self, request):
+        group_id = request.GET.get("id")
+        users = User.objects.filter(groupuser__group_id=group_id).extra(
+            select = {"user_id": "group_users.user_id", "user_type": "group_users.user_type"}
+        ).values("user_id", "username", "user_type")
+        keyword = request.GET.get("keyword", None)
+        if keyword:
+            users = users.filter(username__icontains=keyword)
+        return self.success(self.paginate_data(request, users, GroupUserSeriaizer))
+
+    @admin_role_required
+    def delete(self, request):
+        group_id = request.GET.get("group_id")
+        user_ids = request.GET.get("user_ids")
+        user_ids = user_ids.split(",")
+        GroupUser.objects.filter(Q(group_id=group_id) & Q(user_id__in=user_ids)).delete()
+        return self.success()
 
 class UserAdminAPI(APIView):
     @validate_serializer(ImportUserSeralizer)
@@ -99,7 +192,7 @@ class UserAdminAPI(APIView):
         UserProfile.objects.filter(user=user).update(real_name=data["real_name"])
         return self.success(UserAdminSerializer(user).data)
 
-    @super_admin_required
+    @admin_role_required
     def get(self, request):
         """
         User list api / Get user by id

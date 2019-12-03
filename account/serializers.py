@@ -2,7 +2,34 @@ from django import forms
 
 from utils.api import serializers, UsernameSerializer
 
-from .models import AdminType, ProblemPermission, User, UserProfile
+from .models import AdminType, ProblemPermission, User, UserProfile, Group
+
+class CreateGroupSeriaizer(serializers.Serializer):
+    groupname= serializers.CharField()
+
+
+class EditGroupSeriaizer(serializers.Serializer):
+    id = serializers.IntegerField()
+    groupname = serializers.CharField(max_length=128)
+
+class GroupSeriaizer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = "__all__"
+
+class GroupUserListSeriaizer(serializers.Serializer):
+    group_id = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.IntegerField())
+
+class GroupUserSeriaizer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    username = serializers.CharField()
+    user_type = serializers.BooleanField()
+
+class EditGroupUserSeriaizer(serializers.Serializer):
+    group_id = serializers.IntegerField()
+    user_id = serializers.IntegerField()
+    user_type = serializers.BooleanField()
 
 
 class UserLoginSerializer(serializers.Serializer):

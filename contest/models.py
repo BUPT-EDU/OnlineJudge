@@ -4,7 +4,7 @@ from django.utils.timezone import now
 from utils.models import JSONField
 
 from utils.constants import ContestStatus, ContestType
-from account.models import User
+from account.models import User, Group
 from utils.models import RichTextField
 
 
@@ -24,6 +24,7 @@ class Contest(models.Model):
     # 是否可见 false的话相当于删除
     visible = models.BooleanField(default=True)
     allowed_ip_ranges = JSONField(default=list)
+    groups = models.ManyToManyField(Group)
 
     @property
     def status(self):

@@ -3,6 +3,10 @@ from utils.api import UsernameSerializer, serializers
 from .models import Contest, ContestAnnouncement, ContestRuleType
 from .models import ACMContestRank, OIContestRank
 
+class ContestGroupListSeriaizer(serializers.Serializer):
+    contest_id = serializers.IntegerField()
+    group_ids = serializers.ListField(child=serializers.IntegerField())
+
 
 class CreateConetestSeriaizer(serializers.Serializer):
     title = serializers.CharField(max_length=128)
