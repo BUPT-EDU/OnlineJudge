@@ -17,6 +17,39 @@ from ..serializers import SubmissionSafeModelSerializer, SubmissionListSerialize
 
 
 class SubmissionAPI(APIView):
+    def check_code(self, code):
+        lines = code.split("\n")
+        code_lines, comment_lines, max_fun_lines = len(lines), 0, 0
+        bracket_start, comment_start, comment_line_in_fun = [], -1, 0
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if "/*" in line and comment_start == -1:
+                comment_start = i
+            elif "*/" in line and comment_start != -1:
+                now_comment_lines = i + 1 - comment_start
+                if bracket_start != -1:
+                    comment_line_in_fun += now_comment_lines
+                comment_lines += now_comment_lines
+                comment_start = -1
+            elif "//" in line:
+                    comment_lines += 1
+                    if len(bracket_start) > 0:
+                        comment_line_in_fun += 1
+            elif "{" in line:
+                bracket_start.append(i)
+            elif "}" in line:
+                if len(bracket_start) == 1:
+                    max_fun_lines = max(max_fun_lines, i - 1 - bracket_start[0] - comment_line_in_fun)
+                    bracket_start.pop()
+                    comment_line_in_fun = 0
+                elif len(bracket_start) > 1:
+                    bracket_start.pop()
+        if max_fun_lines >= 30:
+            return False, "Some functions have more than 30 lines of code"
+        if comment_lines * 1. / code_lines < 0.15:
+            return False, "Code contains less than 15% comments"
+        return True, None
+
     def throttling(self, request):
         # 使用 open_api 的请求暂不做限制
         auth_method = getattr(request, "auth_method", "")
@@ -71,6 +104,15 @@ class SubmissionAPI(APIView):
             return self.error("Problem not exist")
         if data["language"] not in problem.languages:
             return self.error(f"{data['language']} is now allowed in the problem")
+        forbid_keywords = problem.forbid_keyword.split(",")
+        for kw in forbid_keywords:
+            kw = kw.strip()
+            if kw in data["code"]:
+                return self.error("Keyword \"%s\" is not allowed in the code of this problem" % kw)
+        if data["language"] in ["C"]:
+            flag, msg = self.check_code(data["code"])
+            if not flag:
+                return self.error(msg)
         submission = Submission.objects.create(user_id=request.user.id,
                                                username=request.user.username,
                                                language=data["language"],

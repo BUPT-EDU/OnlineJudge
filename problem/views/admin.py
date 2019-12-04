@@ -617,7 +617,8 @@ class ImportProblemAPI(CSRFExemptAPIView, TestCaseZipProcessor):
                                                              difficulty=Difficulty.MID,
                                                              total_score=sum(item["score"] for item in test_case_score)
                                                              if rule_type == ProblemRuleType.OI else 0,
-                                                             test_case_id=test_case_id
+                                                             test_case_id=test_case_id,
+                                                             forbid_keyword=problem_info["forbid_keyword"]
                                                              )
                         for tag_name in problem_info["tags"]:
                             tag_obj, _ = ProblemTag.objects.get_or_create(name=tag_name)

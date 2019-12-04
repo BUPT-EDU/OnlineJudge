@@ -70,6 +70,7 @@ class CreateOrEditProblemSerializer(serializers.Serializer):
     hint = serializers.CharField(allow_blank=True, allow_null=True)
     source = serializers.CharField(max_length=256, allow_blank=True, allow_null=True)
     share_submission = serializers.BooleanField()
+    forbid_keyword = serializers.CharField(allow_blank=True, allow_null=True)
 
 
 class CreateProblemSerializer(CreateOrEditProblemSerializer):
@@ -194,7 +195,7 @@ class ExportProblemSerializer(serializers.ModelSerializer):
         fields = ("display_id", "title", "description", "tags",
                   "input_description", "output_description",
                   "test_case_score", "hint", "time_limit", "memory_limit", "samples",
-                  "template", "spj", "rule_type", "source", "template")
+                  "template", "spj", "rule_type", "source", "forbid_keyword")
 
 
 class AddContestProblemSerializer(serializers.Serializer):
@@ -255,6 +256,7 @@ class ImportProblemSerializer(serializers.Serializer):
     source = serializers.CharField(max_length=200, allow_blank=True, allow_null=True)
     answers = serializers.ListField(child=AnswerSerializer())
     tags = serializers.ListField(child=serializers.CharField())
+    forbid_keyword = serializers.CharField(allow_blank=True, allow_null=True)
 
 
 class FPSProblemSerializer(serializers.Serializer):
