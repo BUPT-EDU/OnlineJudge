@@ -107,7 +107,7 @@ class SubmissionAPI(APIView):
         forbid_keywords = problem.forbid_keyword.split(",")
         for kw in forbid_keywords:
             kw = kw.strip()
-            if kw in data["code"]:
+            if kw != "" and kw in data["code"]:
                 return self.error("Keyword \"%s\" is not allowed in the code of this problem" % kw)
         if data["language"] in ["C"]:
             flag, msg = self.check_code(data["code"])
